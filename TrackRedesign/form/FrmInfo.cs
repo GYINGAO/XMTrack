@@ -83,9 +83,9 @@ namespace TrackRedesign {
             string dirTxt = path + $"调整方案\\{title}(级差为{parameter.Rows[4][1]}).txt";
             string template = string.Empty;
             if (datumTrack == 1)
-                template = ExceNPOIlHelep.bootTemplate + "右股基准股.xls";
+                template = ExceNPOIlHelep.bootTemplate + "ExcelTemplate/右股基准股.xls";
             else if (datumTrack == 0)
-                template = ExceNPOIlHelep.bootTemplate + "左股基准股.xls";
+                template = ExceNPOIlHelep.bootTemplate + "ExcelTemplate/左股基准股.xls";
             if (tag == false) {
                 if (MessageBox.Show($"已有{title}(级差为{parameter.Rows[4][1]})，是否重新导出覆盖？", "导出提示", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes) {
                     //IOHelper.DataTableExportToExcel(export, dir);

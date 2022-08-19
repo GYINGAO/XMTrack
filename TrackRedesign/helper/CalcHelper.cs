@@ -81,14 +81,20 @@ namespace TrackRedesign {
         /// </summary>
         /// <returns></returns>
         public void CalcPPSimulationAdjustment(DataTable averageValue,
-            DataTable simulationAdjustmentPP, DataTable slopeP, DataTable tendLineP, int datumTrack) {
+            DataTable simulationAdjustmentPP, DataTable slopeP, DataTable tendLineP, DataTable zhexian, int datumTrack) {
             simulationAdjustmentPP.Rows.Clear();
+            zhexian.Rows.Clear();
             int averageValueCount = averageValue.Rows.Count;
             for (int i = 0; i < averageValueCount; i++) {
                 double beforeAPlane = Convert.ToDouble(averageValue.Rows[i]["调前平面"].ToString());
                 double beforeAGauge = Convert.ToDouble(averageValue.Rows[i]["调前轨距"].ToString());
                 double x = Convert.ToDouble(averageValue.Rows[i]["里程"].ToString());
                 double afterAPlane = GetPPOrElevationAnalogAdj(x, slopeP, tendLineP);
+                DataRow dr = zhexian.NewRow();
+                dr["里程"] = Convert.ToDouble(averageValue.Rows[i]["里程"]);
+                dr["纵坐标"] = afterAPlane;
+                zhexian.Rows.Add(dr);
+                //Console.WriteLine($"里程：{averageValue.Rows[i]["里程"]}，调后：{afterAPlane}");
                 DataRow dr1 = simulationAdjustmentPP.NewRow();
                 dr1["里程"] = Convert.ToDouble(averageValue.Rows[i]["里程"].ToString());
                 dr1["调后平面"] = afterAPlane;
@@ -489,15 +495,21 @@ namespace TrackRedesign {
             //double[] l2 = CalcLine(pm, pe);
             //double angle = Math.Acos(Math.Abs(l1[1] * l2[1] + l1[0] * l2[0]) / (Math.Sqrt(l1[0] * l1[0] + l1[1] * l1[1]) * Math.Sqrt(l2[0] * l2[0] + l2[1] * l2[1])));
             //return angle;
-            Point pm2ps = new Point() { x = ps.x - pm.x, y = ps.y - pm.y };
-            Point pm2pe = new Point() { x = pe.x - pm.x, y = pe.y - pm.y };
+            //Point pm2ps = new Point() { x = ps.x - pm.x, y = ps.y - pm.y };
+            //Point pm2pe = new Point() { x = pe.x - pm.x, y = pe.y - pm.y };
+
+            Point pm2ps = new Point() { x = (ps.x - pm.x) * 1000, y = ps.y - pm.y };
+            Point pm2pe = new Point() { x = (pe.x - pm.x) * 1000, y = pe.y - pm.y };
+
             double pm2psLenth = Math.Sqrt(pm2ps.x * pm2ps.x + pm2ps.y * pm2ps.y);
             double pm2peLenth = Math.Sqrt(pm2pe.x * pm2pe.x + pm2pe.y * pm2pe.y);
             double angle = Math.Acos((pm2ps.x * pm2pe.x + pm2ps.y * pm2pe.y) / (pm2psLenth * pm2peLenth));
-            return angle;
+            //return angle;
+            return (180 - angle * (180 / Math.PI)) * 3600;
         }
 
         public static double CalcBend(double angle, double length) {
+            Console.WriteLine(angle);
             return Math.Round(length / 2 / Math.Tan(angle / 2), 2);
         }
 
@@ -524,28 +536,28 @@ namespace TrackRedesign {
                     double negative = Convert.ToDouble(range.Rows[i][3]);
                     double num = Convert.ToDouble(plan.Rows[i][basicCol]);
                     if (num > positive) {
-                        num = Math.Abs(num);
-                        if (num >= maxValue) {
+                        double value = Math.Round(num - positive, 3);
+                        if (Math.Abs(value) >= Math.Abs(maxValue)) {
                             maxIndex = i;
-                            maxValue = num;
+                            maxValue = value;
                         }
                         DataRow dr = dt.NewRow();
                         dr["序号"] = index;
                         dr["里程/m"] = plan.Rows[i]["里程"];
-                        dr["超限量/mm"] = Math.Round(num - positive, 3);
+                        dr["超限量/mm"] = value;
                         dt.Rows.Add(dr);
                         index++;
                     }
                     else if (num < negative) {
-                        num = Math.Abs(num);
-                        if (num >= maxValue) {
+                        double value = Math.Round(num - negative, 3);
+                        if (Math.Abs(value) >= Math.Abs(maxValue)) {
                             maxIndex = i;
-                            maxValue = num;
+                            maxValue = value;
                         }
                         DataRow dr = dt.NewRow();
                         dr["序号"] = index;
                         dr["里程/m"] = plan.Rows[i]["里程"];
-                        dr["超限量/mm"] = Math.Round(num - negative, 3);
+                        dr["超限量/mm"] = value;
                         dt.Rows.Add(dr);
                         index++;
                     }
@@ -559,37 +571,35 @@ namespace TrackRedesign {
                     double negative = Convert.ToDouble(range.Rows[i][3]);
                     double num = Convert.ToDouble(plan.Rows[i][basicCol]);
                     if (num > positive) {
-                        num = Math.Abs(num);
-                        if (num >= maxValue) {
+                        double value = Math.Round(num - positive, 3);
+                        if (Math.Abs(value) >= Math.Abs(maxValue)) {
                             maxIndex = i;
-                            maxValue = num;
+                            maxValue = value;
                         }
                         DataRow dr = dt.NewRow();
                         dr["序号"] = index;
                         dr["里程/m"] = plan.Rows[i]["里程"];
-                        dr["超限量/mm"] = Math.Round(num - positive, 3);
+                        dr["超限量/mm"] = value;
                         dt.Rows.Add(dr);
                         index++;
                     }
                     else if (num < negative) {
-                        num = Math.Abs(num);
-                        if (num >= maxValue) {
+                        double value = Math.Round(num - negative, 3);
+                        if (Math.Abs(value) >= Math.Abs(maxValue)) {
                             maxIndex = i;
-                            maxValue = num;
+                            maxValue = value;
                         }
                         DataRow dr = dt.NewRow();
                         dr["序号"] = index;
                         dr["里程/m"] = plan.Rows[i]["里程"];
-                        dr["超限量/mm"] = Math.Round(num - negative, 3);
+                        dr["超限量/mm"] = value;
                         dt.Rows.Add(dr);
                         index++;
                     }
                 }
             }
 
-            var dv = new DataView(dt);
-            dv.Sort = "超限量/mm desc";
-            return new Tuple<DataTable, int, double>(dv.ToTable(), maxIndex, maxValue);
+            return new Tuple<DataTable, int, double>(dt, maxIndex, maxValue);
         }
     }
 }

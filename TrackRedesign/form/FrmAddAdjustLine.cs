@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using DevExpress.Utils;
@@ -20,7 +21,9 @@ namespace TrackRedesign {
         //定义弦长
         public readonly double chordLength = 70;
         //定义挠度限差
-        public static readonly double bendTol = 3;
+        //public static readonly double bendTol = 3;
+        // 转向角限差
+        public static readonly double bendTol = 35;
         //定义点的查找范围
         readonly double tol = 30;
         //定义折线颜色数组
@@ -235,6 +238,7 @@ namespace TrackRedesign {
                         dgvPPAdjustLine.Rows.Remove(row);//删除行  
                         frmMain.AdjustPlanPP.Rows.Clear();
                         dgvPPAdjustLine.Sort(dgvPPAdjustLine.Columns[0], ListSortDirection.Ascending);
+                        GetBend(dgvPPAdjustLine, chordLength);
                         ChartHelper.LogChecked(ctclPPAdjLine, PPChecked);
                         PaintFromDgv(dgvPPAdjustLine, ctclPPAdjLine, "PPMiles", "PPBias");
                         //计算调整量
@@ -419,7 +423,7 @@ namespace TrackRedesign {
             calc.CalaTendLine(dgvPPAdjustLine, frmMain.tendLinePP, colNamePP);
             calc.CalcSlope(frmMain.tendLinePP, frmMain.slopePP);
             calc.CalcPPSimulationAdjustment(frmMain.averageValue,
-                frmMain.simulationAdjustmentPP, frmMain.slopePP, frmMain.tendLinePP, frmMain.datumTrack);
+                frmMain.simulationAdjustmentPP, frmMain.slopePP, frmMain.tendLinePP, frmMain.zhexianPP, frmMain.datumTrack);
             calc.CalcPPActualAdjustment(frmMain.actualAdjustmentPP, frmMain.averageValue,
                 frmMain.simulationAdjustmentPP, frmMain.datumTrack, double.Parse(frmMain.parameter.Rows[4][1].ToString()));
             calc.CalcPPBasicTrackAdjustable(frmMain.averageValue, frmMain.railFastening,
@@ -898,9 +902,158 @@ namespace TrackRedesign {
 
         static double p_x, p_y, e_x, e_y, coordp_x_down, coordp_x_up, coordp_y_up, coorde_x_down, coorde_x_up, coorde_y_up;
 
+        /// <summary>
+        /// 自动计算
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnCalc_Click(object sender, EventArgs e) {
-            Console.WriteLine(maxIndex);
-            Console.WriteLine(maxOverrun);
+            while (Math.Abs(maxOverrun) > 0) {
+
+                var lastValve = maxOverrun;
+                var lastIndex = maxIndex;
+
+
+                int index = dgvPPAdjustLine.Rows.Add();
+                var newVal = Convert.ToDouble(frmMain.zhexianPP.Rows[maxIndex]["纵坐标"]) + maxOverrun / 2;
+                Console.WriteLine($"第{index - 1}次计算");
+                Console.WriteLine($"超限量最大处里程：{frmMain.averageValue.Rows[maxIndex]["里程"]}");
+                Console.WriteLine($"超限值：{maxOverrun}");
+                Console.WriteLine($"修改前折点纵坐标：{Convert.ToDouble(frmMain.zhexianPP.Rows[maxIndex]["纵坐标"])}");
+                Console.WriteLine($"修改后折点纵坐标：{newVal}");
+
+                dgvPPAdjustLine.Rows[index].Cells[0].Value = Convert.ToDouble(frmMain.averageValue.Rows[maxIndex]["里程"]);
+                dgvPPAdjustLine.Rows[index].Cells[1].Value = newVal;
+                dgvPPAdjustLine.Sort(dgvPPAdjustLine.Columns[0], ListSortDirection.Ascending);
+
+
+
+
+                // 生成一个折点就修改一个
+                // 排序后要重新找到行索引
+                //int currentIndex = 1;
+                //for (int i = 0; i < dgvPPAdjustLine.Rows.Count; i++) {
+
+                //    if (double.Parse(dgvPPAdjustLine.Rows[i].Cells[0].Value.ToString()) == Convert.ToDouble(frmMain.averageValue.Rows[maxIndex]["里程"])) {
+                //        currentIndex = i;
+                //        Console.WriteLine(currentIndex);
+                //        break;
+                //    }
+                //}
+
+                //CalcHelper.Point ps = new CalcHelper.Point() {
+                //    x = double.Parse(dgvPPAdjustLine.Rows[currentIndex - 1].Cells[0].Value.ToString()),
+                //    y = double.Parse(dgvPPAdjustLine.Rows[currentIndex - 1].Cells[1].Value.ToString())
+                //};
+                //CalcHelper.Point pm = new CalcHelper.Point() {
+                //    x = double.Parse(dgvPPAdjustLine.Rows[currentIndex].Cells[0].Value.ToString()),
+                //    y = double.Parse(dgvPPAdjustLine.Rows[currentIndex].Cells[1].Value.ToString())
+                //};
+                //CalcHelper.Point pe = new CalcHelper.Point() {
+                //    x = double.Parse(dgvPPAdjustLine.Rows[currentIndex + 1].Cells[0].Value.ToString()),
+                //    y = double.Parse(dgvPPAdjustLine.Rows[currentIndex + 1].Cells[1].Value.ToString())
+                //};
+                //double angle = CalcHelper.CalcAngle(ps, pm, pe);
+                //if (angle > bendTol && pm.x != ps.x && pm.x != pe.x) {
+                //    double top = 0;
+                //    double bottom = 0;
+                //    var flag = 0;
+                //    if (pm.y > (ps.y + pe.y) / 2) {
+                //        top = pm.y;
+                //        bottom = (ps.y + pe.y) / 2;
+                //    }
+                //    else {
+                //        top = (ps.y + pe.y) / 2;
+                //        bottom = pm.y;
+                //        flag = 1;
+                //    }
+                //    while (Math.Abs(angle - bendTol) > 10e-5) {
+                //        pm.y = (top + bottom) / 2;
+                //        angle = CalcHelper.CalcAngle(ps, pm, pe);
+                //        if (angle > bendTol) {
+                //            if (flag == 0) {
+                //                top = pm.y;
+                //            }
+                //            else {
+                //                bottom = pm.y;
+                //            }
+                //        }
+                //        else {
+                //            if (flag == 0) {
+                //                bottom = pm.y;
+                //            }
+                //            else {
+                //                top = pm.y;
+                //            }
+                //        }
+                //    }
+                //    dgvPPAdjustLine.Rows[currentIndex].Cells[1].Value = pm.y;
+                //}
+                CalcPP();
+                if (lastValve == maxOverrun && lastIndex == maxIndex) {
+                    break;
+                }
+            }
+            Console.WriteLine("退出循环");
+
+
+            // 70m弦不平顺值超限，往往是因为添加了两个里程很接近的点，需要删除其中挠度较大的点
+            //for (int i = 1; i < dgvPPAdjustLine.Rows.Count; i++) {
+            //    if (Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value) - Convert.ToDouble(dgvPPAdjustLine.Rows[i - 1].Cells[0].Value) < 70) {
+            //        dgvPPAdjustLine.Rows.RemoveAt(i);
+            //        i--;
+            //    }
+            //}
+
+
+
+
+
+
+            //for (int i = 1; i < dgvPPAdjustLine.Rows.Count - 1; i++) {
+            //    Console.WriteLine("总数：" + dgvPPAdjustLine.Rows.Count);
+            //    Console.WriteLine("当前行：" + i);
+            //    if (!string.IsNullOrEmpty(dgvPPAdjustLine.Rows[i].Cells[2].ErrorText)) {
+            //        Console.WriteLine("超限里程：" + Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value));
+            //        if (!string.IsNullOrEmpty(dgvPPAdjustLine.Rows[i + 1].Cells[2].ErrorText)) {
+            //            // 避免使用魔法值，切记
+            //            if (Math.Abs(Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value) - Convert.ToDouble(dgvPPAdjustLine.Rows[i + 1].Cells[0].Value)) <= 2) {
+            //                dgvPPAdjustLine.Rows.RemoveAt(i);
+            //                //if (Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[2].Value) >= Convert.ToDouble(dgvPPAdjustLine.Rows[i + 1].Cells[2].Value)) {
+            //                //    dgvPPAdjustLine.Rows.RemoveAt(i);
+            //                //}
+            //                //else {
+            //                //    dgvPPAdjustLine.Rows.RemoveAt(i + 1);
+            //                //}
+            //            }
+            //            else if (Math.Abs(Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value) - Convert.ToDouble(dgvPPAdjustLine.Rows[i - 1].Cells[0].Value)) <= 2) {
+            //                dgvPPAdjustLine.Rows.RemoveAt(i);
+            //            }
+            //        }
+            //        else {
+            //            if (Math.Abs(Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value) - Convert.ToDouble(dgvPPAdjustLine.Rows[i + 1].Cells[0].Value)) <= 3 ||
+            //                Math.Abs(Convert.ToDouble(dgvPPAdjustLine.Rows[i].Cells[0].Value) - Convert.ToDouble(dgvPPAdjustLine.Rows[i - 1].Cells[0].Value)) <= 3) {
+            //                Console.WriteLine("删除超限点");
+            //                dgvPPAdjustLine.Rows.RemoveAt(i);
+            //            }
+            //        }
+            //    }
+            //}
+            //Console.WriteLine("结束删除点");
+
+            GetBend(dgvPPAdjustLine, chordLength);
+            //记录当前图例复选框的状态
+            ChartHelper.LogChecked(ctclPPAdjLine, PPChecked);
+            //画图
+            PaintFromDgv(dgvPPAdjustLine, ctclPPAdjLine, "PPMiles", "PPBias");
+            //计算调整量
+            CalcPP();
+            //画调整量图像
+            PaintFromCalcPPResult();
+            ChartHelper.SetSeriesColor(ctclPPAdjLine, ppColor, "调前平面", "调整量", "右界", "左界", "调整中线");
+            //设置图例复选框状态
+            ChartHelper.SetPPCheckBoxes(ctclPPAdjLine, PPChecked);
+
 
 
             /*List<Point> pointList = new List<Point>();
@@ -932,6 +1085,23 @@ namespace TrackRedesign {
             ChartHelper.SetSeriesColor(ctclPPAdjLine, ppColor, "调前平面", "调整量", "右界", "左界", "调整中线");
             //设置图例复选框状态
             ChartHelper.SetPPCheckBoxes(ctclPPAdjLine, PPChecked);*/
+        }
+
+        private void fixAngle() {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 输出300m弦长轨向高低
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button1_Click(object sender, EventArgs e) {
+            using (StreamWriter sw = new StreamWriter(@"C:\Users\Rick\Desktop\300m.txt")) {
+                foreach (var item in CalcChord.calc_300m(frmMain.export)) {
+                    sw.WriteLine(item);
+                }
+            }
         }
 
         private void dgvovernum_Ele_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e) {
@@ -966,7 +1136,7 @@ namespace TrackRedesign {
                     double miX = Math.Round((ps.x + pe.x) / 2, 3);
                     double miY = Math.Round((ps.y + pe.y) / 2, 3);
                     double yMaxOrMin = pm.y;
-                    double angle, bend;
+                    double angle;
 
                     double yMin, yMax, xMin, xMax;
                     if (pm.x > miX) {
@@ -999,8 +1169,8 @@ namespace TrackRedesign {
                             while (pm.y > yMin) {
                                 pm.y -= 0.1;
                                 angle = CalcHelper.CalcAngle(ps, pm, pe);
-                                bend = CalcHelper.CalcBend(angle, chordLength);
-                                if (bend < bendTol) {
+                                //bend = CalcHelper.CalcBend(angle, chordLength);
+                                if (angle < bendTol) {
                                     dgvElevationLine.Rows[e.RowIndex].Cells[0].Value = "";
                                     dgvElevationLine.Rows[e.RowIndex].Cells[1].Value = "";
 
@@ -1029,8 +1199,8 @@ namespace TrackRedesign {
                             while (pm.y < yMax) {
                                 pm.y += 0.1;
                                 angle = CalcHelper.CalcAngle(ps, pm, pe);
-                                bend = CalcHelper.CalcBend(angle, chordLength);
-                                if (bend < bendTol) {
+                                //bend = CalcHelper.CalcBend(angle, chordLength);
+                                if (angle < bendTol) {
                                     dgvElevationLine.Rows[e.RowIndex].Cells[0].Value = "";
                                     dgvElevationLine.Rows[e.RowIndex].Cells[1].Value = "";
 
@@ -1214,8 +1384,8 @@ namespace TrackRedesign {
                         y = double.Parse(dgv.Rows[i + 1].Cells[1].Value.ToString())
                     };
                     double angle = CalcHelper.CalcAngle(ps, pm, pe);
-                    double bend = CalcHelper.CalcBend(angle, chordLength);
-                    dgv.Rows[i].Cells[2].Value = bend;
+                    //double bend = CalcHelper.CalcBend(angle, chordLength);
+                    dgv.Rows[i].Cells[2].Value = angle;
                     if (Convert.ToDouble(dgv.Rows[i].Cells[2].Value) > bendTol) {
                         dgv.Rows[i].Cells[2].ErrorText = "挠度超限";
                     }

@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using TrackRedesign.Properties;
 using System.Configuration;
-using WinForms;
 
 namespace TrackRedesign {
     public partial class FrmMain : Form {
@@ -95,6 +90,7 @@ namespace TrackRedesign {
         //调整量超限
         public DataTable overrunPP = null;
         public DataTable overrunEle = null;
+        public DataTable zhexianPP = new DataTable("折线纵坐标");
         public int datumTrack = 3;//左轨0右轨1
         public string path = string.Empty;//定义工程项目路径
         public string[] pathFile = new string[2];
@@ -221,6 +217,9 @@ namespace TrackRedesign {
         private void FrmMain_Load(object sender, EventArgs e) {
 
             #region 初始化每个Datatable
+            zhexianPP.Columns.Add("里程", Type.GetType("System.Double"));
+            zhexianPP.Columns.Add("纵坐标", Type.GetType("System.Double"));
+
             //初始化slopeP
             slopePP.Columns.Add("起始里程", Type.GetType("System.Double"));
             slopePP.Columns.Add("结束里程", Type.GetType("System.Double"));
@@ -1072,6 +1071,11 @@ namespace TrackRedesign {
                 MessageBox.Show("没有高程方案！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             DtAddExport(AdjustPlanPP, AdjustPlanElevation);
+            using (StreamWriter sw = new StreamWriter(@"C:\Users\Rick\Desktop\300m.txt")) {
+                foreach (var item in CalcChord.calc_300m(export)) {
+                    sw.WriteLine(item);
+                }
+            }
             bool b = CheckForm(typeof(FrmInfo).Name);
             if (!b) {
                 FrmInfo fm = new FrmInfo(path, parameter, export, datumTrack, title, time, maker, overrunPP, overrunEle);

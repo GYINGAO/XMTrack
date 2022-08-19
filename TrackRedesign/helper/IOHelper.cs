@@ -356,9 +356,12 @@ namespace TrackRedesign {
                             //if (IsInt(value) == true) {
                             //    value = int.Parse(value).ToString("0");
                             //}
-                            else if (IsIntOrDouble(value) == true) {
-                                value = double.Parse(value).ToString("f1");
-                            }
+
+
+                            // 保留一位小数
+                            //else if (IsIntOrDouble(value) == true) {
+                            //    value = double.Parse(value).ToString("f1");
+                            //}
                             //sb.Append(String.Format("{0,-20}", value));
                             sb.Append(value + "\t ");
                         }

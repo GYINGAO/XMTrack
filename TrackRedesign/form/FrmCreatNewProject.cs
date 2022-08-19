@@ -39,6 +39,7 @@ namespace TrackRedesign {
                 MessageBox.Show("请输入项目名称！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+            fm.title = txtProjectName.Text;
             string prjMessage = string.Empty;
             string str = txtProjectLocation.Text + txtProjectName.Text + @"\";
             fm.prjName = txtProjectName.Text + ".prj";

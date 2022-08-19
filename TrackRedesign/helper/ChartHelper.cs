@@ -311,5 +311,13 @@ namespace TrackRedesign {
             }
         }
 
+        /// <summary>
+        /// 删除里程很接近的连个点，挠度较大的一个
+        /// </summary>
+        /// <param name="dgv"></param>
+        public static void delRows(DataGridView dgv) {
+
+        }
+
     }
 }
